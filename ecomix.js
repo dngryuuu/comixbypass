@@ -5,24 +5,17 @@ if (body) {
         let obj = JSON.parse(body);
 
         if (obj.data && typeof obj.data === "object") {
-            // Chuyển loại tài khoản sang vip/premium
-            obj.data.subscriptionType = "premium";
-            
+            obj.data.subscriptionType = "pro";
             obj.data.activeEntitlementId = "unlimited";
-            
             obj.data.subscriptionEndDate = "2099-12-31T23:59:59.000Z";
-            
             obj.data.subscriptionProvider = "apple";
-            
             obj.success = true;
-
+            body = JSON.stringify(obj);
             console.log("================ [EASYCOMIX - AFTER] ================");
             console.log(body);
         }
-
-        body = JSON.stringify(obj);
     } catch (e) {
-        console.log(e);
+        console.log("Error: " + e);
     }
 }
 
