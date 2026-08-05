@@ -16,10 +16,10 @@ if (body) {
             
             obj.success = true;
 
-            console.log(obj);
+            console.log("+++" + obj);
         }
 
-        body = JSON.stringify("+++" + obj);
+        body = JSON.stringify(obj);
     } catch (e) {
         console.log(e);
     }
