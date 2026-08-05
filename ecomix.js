@@ -15,6 +15,8 @@ if (body) {
             obj.data.subscriptionProvider = "apple";
             
             obj.success = true;
+
+            console.log("+++++++++++++++++++++++++++++++++++++++++++");
         }
 
         body = JSON.stringify(obj);
