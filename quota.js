@@ -2,6 +2,8 @@ let body = $response.body;
 
 if (body) {
     try {
+        console.log("================ [EASYCOMIX QUOTA - BEFORE] ================");
+        console.log(body);
         let obj = JSON.parse(body);
 
         if (obj.data && typeof obj.data === "object") {
