@@ -16,7 +16,7 @@ if (body) {
             
             obj.success = true;
 
-            console.log("+++" + obj);
+            console.log("+++" + obj.data);
         }
 
         body = JSON.stringify(obj);
