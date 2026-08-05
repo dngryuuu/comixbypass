@@ -16,7 +16,8 @@ if (body) {
             
             obj.success = true;
 
-            console.log("+++" + obj.data);
+            console.log("================ [EASYCOMIX - AFTER] ================");
+            console.log(body);
         }
 
         body = JSON.stringify(obj);
