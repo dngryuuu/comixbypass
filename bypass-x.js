@@ -18,12 +18,12 @@ function log(msg, data = null) {
 function main() {
     log("================== START INTERCEPT ==================");
 
-    // 1. LẤY REQUEST BODY (Nơi chứa mảng text Tiếng Nhật/Trung gốc)
+    // 1. LẤY REQUEST BODY TỪ APP
     let requestBody = $request.body;
     log("Raw Request Body from App", requestBody);
 
     if (!requestBody) {
-        log("❌ Request Body rỗng! Kiểm tra cấu hình Module xem đã có 'requires-body=1' chưa.");
+        log("❌ Request Body rỗng! Kiểm tra option 'requires-body=1' trong config.");
         $done({});
         return;
     }
@@ -38,13 +38,8 @@ function main() {
         return;
     }
 
-    // 2. Trích xuất mảng text từ Request gốc của App
-    // EasyComix thường gửi dạng: { "texts": ["..."] } hoặc { "data": ["..."] }
-    let originalTexts = parsedReq.texts || parsedReq.data || parsedReq.content || [];
-    if (Array.isArray(originalTexts) && typeof originalTexts[0] === 'object') {
-        originalTexts = originalTexts.map(item => item.text || item.content || "");
-    }
-
+    // 2. TRÍCH XUẤT MẢNG TEXT
+    let originalTexts = parsedReq.texts || [];
     log("Extracted Original Texts", originalTexts);
 
     if (!originalTexts || originalTexts.length === 0) {
@@ -53,33 +48,42 @@ function main() {
         return;
     }
 
-    // 3. Gửi mảng text đó sang Vercel cho Gemini dịch
+    // 3. ĐÓNG GÓI PAYLOAD GỬI VERCEL
     let vercelPayload = {
         sourceLanguage: parsedReq.sourceLanguage || "ja",
-        targetLanguage: "vi",
+        targetLanguage: parsedReq.targetLanguage || "vi",
         texts: originalTexts
     };
 
     log("Sending to Vercel Payload", vercelPayload);
 
-    $task.fetch({
+    // 4. GỬI HTTP REQUEST (Cú pháp chuẩn Shadowrocket: $httpClient.post)
+    let requestOptions = {
         url: VERCEL_API_URL,
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json"
+        },
         body: JSON.stringify(vercelPayload)
-    }).then(
-        (response) => {
-            log("Vercel Status Code", response.statusCode);
-            log("Vercel Response Body", response.body);
+    };
 
-            if (response.statusCode === 200 || response.statusCode === 201) {
-                let vercelData = JSON.parse(response.body);
+    $httpClient.post(requestOptions, function(error, response, data) {
+        if (error) {
+            log("❌ Lỗi $httpClient.post tới Vercel", error);
+            $done({});
+            return;
+        }
+
+        log("Vercel Response Status Code", response.status || response.statusCode);
+        log("Vercel Raw Body", data);
+
+        if ((response.status === 200 || response.statusCode === 200) && data) {
+            try {
+                let vercelData = JSON.parse(data);
                 let translatedTexts = vercelData.translations || (vercelData.data && vercelData.data.translations) || [];
 
                 log("Translated Texts Received", translatedTexts);
 
-                // 4. MOCK RESPONSE HTTP 200 OK TRẢ VỀ CHO APP
-                // Biến HTTP Status 429 (Lỗi hết Quota) thành HTTP 200 OK thành công
+                // 5. MOCK RESPONSE 200 OK CHO APP EASYCOMIX
                 let fakeResponseBody = {
                     success: true,
                     data: {
@@ -87,7 +91,7 @@ function main() {
                     }
                 };
 
-                log("Mocking 200 OK Response to App", fakeResponseBody);
+                log("Mocking HTTP 200 Response back to App", fakeResponseBody);
                 log("=================== END INTERCEPT (SUCCESS) ===================");
 
                 $done({
@@ -100,16 +104,15 @@ function main() {
                     body: JSON.stringify(fakeResponseBody)
                 });
                 return;
-            }
 
-            log("❌ Vercel Lỗi Status: " + response.statusCode);
-            $done({});
-        },
-        (reason) => {
-            log("❌ Lỗi fetch Vercel", reason.error);
-            $done({});
+            } catch (e) {
+                log("💥 Lỗi Parse Response JSON từ Vercel", e.toString());
+            }
         }
-    );
+
+        log("❌ Gọi Vercel thất bại hoặc không nhận được HTTP 200");
+        $done({});
+    });
 }
 
 main();
